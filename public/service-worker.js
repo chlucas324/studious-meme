@@ -30,14 +30,18 @@ self.addEventListener('install', function (e) {
 });
 
 // Activate the service worker and remove old data from the cache
-self.addEventListener('activate', function(evt) {
-    evt.waitUntil(
+self.addEventListener('activate', function(e) {
+    e.waitUntil(
         caches.keys().then(keyList => {
+            let cacheKeeplist = keyList.filter(function (key) {
+                return key.indexOf(APP_PREFIX);
+              });
+              cacheKeeplist.push(CACHE_NAME); 
             return Promise.all(
                 keyList.map(key => {
                     if (key !== CACHE_NAME && key !== DATA_CACHE_NAME) {
                         console.log("Removing old cache data", key);
-                        return caches.delete(key);
+                        return caches.delete(keyList[i]);
                     }
                 })
             );
@@ -47,23 +51,23 @@ self.addEventListener('activate', function(evt) {
 });
 
 // Intercept fetch requests
-self.addEventListener('fetch', function(evt) {
-    if(evt.request.url.includes('/api')) {
-        evt.respondWith(
+self.addEventListener('fetch', function(e) {
+    if(e.request.url.includes('/api')) {
+        e.respondWith(
             caches
             .open(DATA_CACHE_NAME)
             .then(cache => {
-                return fetch(evt.request)
+                return fetch(e.request)
                 .then(response => {
                  // If the response was good, clone it and store it in the cache.   
                 if (response.status === 200) {
-                    cache.put(evt.request.url, response.clone());
+                    cache.put(e.request.url, response.clone());
                 }
                 return response;
                 })
                 .catch(err => {
                     // network request failed, try to get it from the cache
-                    return cache.match(evt.request);
+                    return cache.match(e.request);
                 });
             })
             .catch(err => console.log(err))
