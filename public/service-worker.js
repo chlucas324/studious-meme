@@ -39,7 +39,7 @@ self.addEventListener('activate', function(e) {
               cacheKeeplist.push(CACHE_NAME); 
             return Promise.all(
                 keyList.map(key => {
-                    if (key !== CACHE_NAME && key !== DATA_CACHE_NAME) {
+                    if (cacheKeeplist.indexOf(key) === -1) {
                         console.log("Removing old cache data", key);
                         return caches.delete(keyList[i]);
                     }
@@ -74,16 +74,15 @@ self.addEventListener('fetch', function(e) {
         );
         return;
     }
-    evt.respondWith(
-        fetch(evt.request).catch(function() {
-            return caches.match(evt.request).then(function(response) {
-                if (response) {
-                    return response;
-                } else if (evt.request.headers.get('accept').includes('text/html')) {
-                 // return the cached home page for all requests for html pages   
+    e.respondWith(
+        fetch(e.request).catch(async function() {
+            const response = await caches.match(e.request);
+            if (response) {
+                return response;
+            } else if (e.request.headers.get('accept').includes('text/html')) {
+                // return the cached home page for all requests for html pages   
                 return caches.match('/');
-                }
-            });
+            }
         })
     )
 });
